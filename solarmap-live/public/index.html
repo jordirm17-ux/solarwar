@@ -1,0 +1,1343 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, viewport-fit=cover">
+<meta name="theme-color" content="#03040c">
+<title>SOLARMAP: WAR — conquer the solar system</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@500;700;900&family=Space+Grotesk:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
+<style>
+:root{
+  --void:#03040c;
+  --panel:#0b0d1e;
+  --panel-2:#12142b;
+  --nebula:#1c1550;
+  --flare:#ff6a3d;
+  --flare-2:#ffb23d;
+  --ion:#4fe0d8;
+  --claimed:#ff3d6a;
+  --gold:#ffd166;
+  --star:#f4f2ec;
+  --dim:#8f8bb0;
+  --line:rgba(143,139,176,0.16);
+  --shield-hi:#4ade80;
+  --shield-mid:#facc15;
+  --shield-lo:#f87171;
+}
+
+*{box-sizing:border-box; margin:0; padding:0;}
+html{height:100%; background-color:#03040c; overflow:hidden; overscroll-behavior:none; overscroll-behavior-y:none;}
+body{
+  background-color:#03040c; color:var(--star); font-family:'Space Grotesk',sans-serif;
+  width:100%; height:100vh; height:100dvh; overflow:hidden; overscroll-behavior:none; overscroll-behavior-y:none;
+  display:flex; flex-direction:column; position:fixed; inset:0;
+}
+body{
+  background-image:
+    radial-gradient(ellipse 60% 40% at 15% 15%, rgba(28,21,80,0.55), transparent 60%),
+    radial-gradient(ellipse 50% 35% at 85% 80%, rgba(255,60,61,0.10), transparent 60%),
+    radial-gradient(ellipse 40% 30% at 80% 10%, rgba(79,224,216,0.08), transparent 60%);
+  background-size:200% 200%;
+  animation:drift 40s ease-in-out infinite alternate;
+}
+@keyframes drift{0%{background-position:0% 0%, 100% 100%, 100% 0%;}100%{background-position:20% 30%, 80% 70%, 60% 20%;}}
+
+.stars{
+  position:fixed; inset:0; pointer-events:none; z-index:0;
+  background-image:
+    radial-gradient(1.5px 1.5px at 8% 22%, #fff 50%, transparent),
+    radial-gradient(1px 1px at 78% 12%, #fff 50%, transparent),
+    radial-gradient(2px 2px at 33% 68%, #fff 50%, transparent),
+    radial-gradient(1px 1px at 58% 82%, #fff 50%, transparent),
+    radial-gradient(1.5px 1.5px at 92% 58%, #fff 50%, transparent),
+    radial-gradient(1px 1px at 47% 33%, #fff 50%, transparent),
+    radial-gradient(1.5px 1.5px at 14% 88%, #fff 50%, transparent),
+    radial-gradient(1px 1px at 66% 46%, #fff 50%, transparent);
+  background-size:700px 700px;
+  animation:twinkle 5s ease-in-out infinite alternate;
+  opacity:0.7;
+}
+@keyframes twinkle{0%{opacity:0.4;}100%{opacity:0.85;}}
+
+.comet{
+  position:fixed; top:-5%; left:-5%; width:3px; height:3px; z-index:1; pointer-events:none;
+  background:var(--star); border-radius:50%;
+  box-shadow:0 0 6px 2px rgba(255,255,255,0.8);
+  animation:comet-fly 13s linear infinite;
+  opacity:0;
+}
+.comet::after{
+  content:''; position:absolute; top:1px; left:1px; width:110px; height:1.5px;
+  background:linear-gradient(90deg, rgba(255,255,255,0.85), transparent);
+  transform:rotate(211deg); transform-origin:left center;
+}
+@keyframes comet-fly{
+  0%{opacity:0; transform:translate(0,0);}
+  3%{opacity:1;}
+  20%{opacity:0.9; transform:translate(70vw,55vh);}
+  24%{opacity:0;}
+  100%{opacity:0; transform:translate(70vw,55vh);}
+}
+
+header{position:relative; z-index:2; padding:22px 20px 14px; text-align:center; border-bottom:1px solid var(--line); flex:0 0 auto;}
+.logo-word{
+  font-family:'Orbitron',sans-serif; font-weight:900; font-size:clamp(22px,5.5vw,38px); letter-spacing:0.06em;
+  background:linear-gradient(90deg, var(--gold), var(--flare), var(--claimed));
+  -webkit-background-clip:text; background-clip:text; color:transparent;
+}
+.logo-word .war{color:var(--claimed); -webkit-text-fill-color:var(--claimed);}
+.tagline{font-size:12px; color:var(--dim); letter-spacing:0.1em; text-transform:uppercase; margin-top:4px;}
+.statbar{display:flex; justify-content:center; gap:20px; margin-top:14px; flex-wrap:wrap; font-family:'JetBrains Mono',monospace; font-size:11px; color:var(--dim);}
+.statbar b{color:var(--ion); font-weight:700;}
+.statbar .dot{width:6px;height:6px;border-radius:50%;background:var(--flare);display:inline-block;animation:pulse 1.6s infinite; margin-right:5px;}
+@keyframes pulse{0%,100%{opacity:1;}50%{opacity:0.25;}}
+
+.view-toggle-float{position:absolute; top:14px; left:14px; z-index:6; font-family:'JetBrains Mono',monospace; font-size:11px; letter-spacing:0.04em; color:var(--star); background:rgba(11,13,30,0.75); backdrop-filter:blur(6px); border:1px solid var(--line); border-radius:10px; padding:8px 12px; cursor:pointer; box-shadow:0 6px 18px rgba(0,0,0,0.35);}
+.view-toggle-float:active{background:rgba(28,21,80,0.85);}
+
+.list-wrap{flex:1; overflow-y:auto; padding:56px 10px 10px; background:rgba(0,0,0,0.15);}
+.list-wrap::-webkit-scrollbar{width:6px;}
+.list-wrap::-webkit-scrollbar-thumb{background:var(--nebula); border-radius:6px;}
+.list-row{display:flex; align-items:center; gap:12px; padding:12px 14px; border-radius:12px; background:var(--panel-2); border:1px solid var(--line); margin-bottom:8px; cursor:pointer;}
+.list-row:hover{border-color:rgba(255,178,61,0.4);}
+.list-dot{width:30px; height:30px; border-radius:50%; flex-shrink:0; overflow:hidden; display:flex; align-items:center; justify-content:center; border:2px solid var(--line); font-size:12px; font-weight:700;}
+.list-dot img{width:100%; height:100%; object-fit:cover;}
+.list-info{flex:1; min-width:0;}
+.list-name{font-size:14px; font-weight:600;}
+.list-name .li-type{font-size:10.5px; color:var(--dim); font-weight:400; text-transform:uppercase; letter-spacing:0.05em; margin-left:6px;}
+.list-owner{font-size:11.5px; color:var(--dim); font-family:'JetBrains Mono',monospace; margin-top:2px;}
+.list-owner b{color:var(--gold);}
+.list-owner.unclaimed{font-style:italic;}
+.list-shield{width:74px; flex-shrink:0; text-align:right;}
+.list-shield .num{font-family:'JetBrains Mono',monospace; font-size:11px; color:var(--dim); margin-bottom:4px;}
+.list-shield-bar{height:6px; border-radius:4px; background:rgba(255,255,255,0.08); overflow:hidden;}
+.list-shield-fill{height:100%; border-radius:4px;}
+.list-free-badge{font-family:'JetBrains Mono',monospace; font-size:10.5px; color:var(--ion); border:1px solid rgba(79,224,216,0.4); border-radius:6px; padding:3px 8px; flex-shrink:0;}
+
+.main-layout{display:flex; position:relative; z-index:2; flex:1 1 auto; min-height:460px; height:70vh; max-height:840px;}
+
+.map-wrap{position:relative; flex:1; overflow:hidden; cursor:grab; touch-action:none;}
+.map-wrap.dragging{cursor:grabbing;}
+#zoomlayer{position:absolute; inset:0; transform-origin:center center;}
+svg#solarsvg{width:100%; height:100%; display:block;}
+
+.orbit-ring{fill:none; stroke:var(--line); stroke-width:1;}
+.orbit-ring.dashed{stroke-dasharray:3 5; opacity:0.6;}
+.body-label{font-family:'Space Grotesk',sans-serif; font-weight:600; fill:var(--star); text-anchor:middle; pointer-events:none;}
+.body-owner{font-family:'JetBrains Mono',monospace; fill:var(--gold); text-anchor:middle; pointer-events:none; font-weight:700;}
+.body-node{cursor:pointer;}
+.body-node .core{transition:filter 0.15s;}
+.body-node:hover .core{filter:brightness(1.35);}
+.sun-corona{animation:corona-pulse 3.2s ease-in-out infinite;}
+@keyframes corona-pulse{0%,100%{opacity:0.55; r:64;}50%{opacity:0.85; r:72;}}
+
+.map-controls{position:absolute; right:14px; bottom:14px; display:flex; flex-direction:column; gap:8px; z-index:5;}
+.map-btn{width:38px;height:38px; border-radius:10px; background:rgba(18,20,43,0.85); border:1px solid var(--line); color:var(--star); font-size:18px; display:flex;align-items:center;justify-content:center; cursor:pointer; backdrop-filter:blur(4px);}
+.map-btn:active{background:var(--nebula);}
+.hint{position:absolute; left:14px; bottom:14px; font-size:11px; color:var(--dim); font-family:'JetBrains Mono',monospace; background:rgba(11,13,30,0.6); padding:6px 10px; border-radius:8px; border:1px solid var(--line); z-index:5; max-width:70%;}
+
+.sidebar{width:300px; flex-shrink:0; border-left:1px solid var(--line); background:var(--panel); display:flex; flex-direction:column; overflow:hidden;}
+.side-panel{flex:1; display:flex; flex-direction:column; min-height:0; border-bottom:1px solid var(--line);}
+.side-panel:last-child{border-bottom:none;}
+.side-head{padding:12px 16px; font-family:'JetBrains Mono',monospace; font-size:11px; letter-spacing:0.12em; text-transform:uppercase; color:var(--flare-2); border-bottom:1px solid var(--line); background:var(--panel-2);}
+.side-body{overflow-y:auto; padding:8px 10px; flex:1;}
+.side-body::-webkit-scrollbar{width:6px;}
+.side-body::-webkit-scrollbar-thumb{background:var(--nebula); border-radius:6px;}
+
+.lb-row{display:flex; align-items:center; gap:10px; padding:8px 8px; border-radius:9px;}
+.lb-row:hover{background:var(--panel-2);}
+.lb-rank{font-family:'JetBrains Mono',monospace; font-size:11px; color:var(--dim); width:16px; text-align:right;}
+.lb-avatar{width:26px;height:26px; border-radius:50%; background:var(--nebula); display:flex;align-items:center;justify-content:center; font-size:11px; font-weight:700; overflow:hidden; flex-shrink:0; border:1px solid var(--line);}
+.lb-avatar img{width:100%;height:100%; object-fit:cover;}
+.lb-info{flex:1; min-width:0;}
+.lb-name{font-size:12.5px; font-weight:600; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;}
+.lb-sub{font-size:10.5px; color:var(--dim); font-family:'JetBrains Mono',monospace;}
+.lb-value{font-family:'JetBrains Mono',monospace; font-size:11.5px; color:var(--gold); font-weight:700; white-space:nowrap; text-align:right;}
+
+.hist-row{display:flex; align-items:center; gap:9px; padding:8px 8px; border-radius:9px;}
+.hist-row:hover{background:var(--panel-2);}
+.hist-icon{width:22px;height:22px;border-radius:50%; background:var(--nebula); flex-shrink:0; overflow:hidden; display:flex;align-items:center;justify-content:center; font-size:10px; border:1px solid var(--line);}
+.hist-icon img{width:100%;height:100%;object-fit:cover;}
+.hist-text{font-size:11.5px; line-height:1.4;}
+.hist-text b{color:var(--gold);}
+.hist-text.hist-fail b{color:var(--dim);}
+.hist-text.hist-conquer b{color:var(--claimed);}
+.hist-time{font-size:10px; color:var(--dim); font-family:'JetBrains Mono',monospace;}
+.empty-note{padding:16px 10px; font-size:11.5px; color:var(--dim); font-family:'JetBrains Mono',monospace; text-align:center;}
+
+footer{position:relative; z-index:2; padding:14px 20px 22px; text-align:center; font-family:'JetBrains Mono',monospace; font-size:11px; color:var(--dim); border-top:1px solid var(--line); flex:0 0 auto;}
+footer span{color:var(--flare-2);}
+
+/* modal */
+.modal-backdrop{position:fixed; inset:0; background:rgba(3,4,12,0.8); backdrop-filter:blur(3px); display:none; align-items:center; justify-content:center; z-index:100; padding:16px;}
+.modal-backdrop.open{display:flex;}
+.modal{width:100%; max-width:410px; max-height:88vh; overflow-y:auto; background:linear-gradient(160deg, var(--nebula) 0%, var(--panel) 100%); border:1px solid rgba(255,255,255,0.08); border-radius:18px; padding:26px 24px 22px; box-shadow:0 30px 80px rgba(0,0,0,0.6); position:relative;}
+.modal-close{position:absolute; top:14px; right:16px; background:none;border:none;color:var(--dim); font-size:20px; cursor:pointer;}
+.modal-eyebrow{font-family:'JetBrains Mono',monospace; font-size:10px; letter-spacing:0.15em; text-transform:uppercase; color:var(--ion);}
+.modal h2{font-family:'Orbitron',sans-serif; font-size:25px; margin-top:4px; margin-bottom:14px;}
+.modal-status{background:rgba(0,0,0,0.25); border-radius:10px; padding:12px 14px; margin-bottom:16px;}
+.modal-status .top-row{display:flex; justify-content:space-between; align-items:baseline;}
+.modal-status .label{font-size:11px; color:var(--dim); text-transform:uppercase; letter-spacing:0.08em;}
+.modal-status .value{font-family:'JetBrains Mono',monospace; font-weight:700; font-size:15px;}
+.owner-line{color:var(--gold);}
+.unclaimed-line{color:var(--dim); font-style:italic;}
+.visit-btn{display:inline-block; margin-top:6px; font-size:10.5px; font-family:'JetBrains Mono',monospace; color:var(--ion); text-decoration:none; border:1px solid rgba(79,224,216,0.4); border-radius:6px; padding:3px 8px;}
+.visit-btn:hover{background:rgba(79,224,216,0.12);}
+
+.shield-wrap{margin-top:12px;}
+.shield-label{display:flex; justify-content:space-between; font-size:10.5px; font-family:'JetBrains Mono',monospace; color:var(--dim); margin-bottom:6px;}
+.defense-pips{display:flex; gap:5px;}
+.defense-pip{flex:1; height:10px; border-radius:4px; background:rgba(255,255,255,0.08);}
+.defense-pip.filled{background:var(--flare-2);}
+.grace-note{margin-top:8px; font-size:11px; color:var(--ion); font-family:'JetBrains Mono',monospace;}
+.level-note{margin-top:6px; font-size:11px; color:var(--dim); font-family:'JetBrains Mono',monospace;}
+.stats-line{margin-top:6px; font-size:11px; color:var(--dim); font-family:'JetBrains Mono',monospace;}
+.stats-line b{color:var(--star);}
+
+.weakgrid{display:grid; grid-template-columns:repeat(5,1fr); gap:6px; margin:12px 0;}
+.weakgrid .cell{aspect-ratio:1; border-radius:8px; background:rgba(255,255,255,0.05); border:1px solid var(--line); display:flex;align-items:center;justify-content:center; cursor:pointer; font-size:15px; color:var(--dim); transition:background .15s, border-color .15s; user-select:none;}
+.weakgrid .cell:hover{background:rgba(255,178,61,0.15); border-color:var(--flare-2);}
+.weakgrid .cell.mine{border-color:var(--gold); background:rgba(255,209,102,0.18); color:var(--gold);}
+.weakgrid .cell.locked{cursor:not-allowed; opacity:0.35; pointer-events:none;}
+.weakgrid .cell.hit{background:rgba(74,222,128,0.35); border-color:var(--shield-hi); color:var(--shield-hi);}
+.weakgrid .cell.miss-cell{background:rgba(248,113,113,0.2); border-color:var(--shield-lo); color:var(--shield-lo);}
+.weakgrid-label{font-size:11px; color:var(--dim); font-family:'JetBrains Mono',monospace; text-transform:uppercase; letter-spacing:0.06em; margin-bottom:4px;}
+
+.field{margin-bottom:14px;}
+.field label{display:block; font-size:11px; color:var(--dim); text-transform:uppercase; letter-spacing:0.08em; margin-bottom:6px;}
+.field input{width:100%; background:rgba(0,0,0,0.3); border:1px solid var(--line); border-radius:9px; padding:10px 12px; color:var(--star); font-family:'Space Grotesk',sans-serif; font-size:14px;}
+.field input:focus{outline:none; border-color:var(--ion);}
+.field .helper{font-size:11px; color:var(--dim); margin-top:5px; font-family:'JetBrains Mono',monospace;}
+
+.action-btn{width:100%; padding:13px; border:none; border-radius:10px; color:white; font-weight:700; font-size:14px; letter-spacing:0.03em; cursor:pointer; margin-top:4px;}
+.action-btn.claim-style{background:linear-gradient(90deg, var(--ion), #38bdf8);}
+.action-btn.reinforce-style{background:linear-gradient(90deg, var(--shield-hi), #22c55e);}
+.action-btn.attack-style{background:linear-gradient(90deg, var(--flare), var(--claimed));}
+.action-btn:active{filter:brightness(0.92);}
+.action-btn:disabled{opacity:0.35; cursor:not-allowed;}
+.modal-error{color:var(--claimed); font-size:12px; margin-top:8px; font-family:'JetBrains Mono',monospace; min-height:14px;}
+.modal-note{font-size:11.5px; color:var(--dim); font-family:'JetBrains Mono',monospace; margin-top:8px; line-height:1.5;}
+
+.chance-badge{display:inline-block; margin-top:10px; padding:6px 12px; border-radius:8px; font-family:'JetBrains Mono',monospace; font-size:12.5px; font-weight:700; background:rgba(255,106,61,0.12); border:1px solid rgba(255,106,61,0.35); color:var(--flare-2);}
+
+.modal-warhistory{margin-top:18px; padding-top:14px; border-top:1px solid var(--line);}
+.wh-head{font-family:'JetBrains Mono',monospace; font-size:10.5px; letter-spacing:0.12em; text-transform:uppercase; color:var(--flare-2); margin-bottom:8px;}
+.wh-body{max-height:180px; overflow-y:auto;}
+.wh-body::-webkit-scrollbar{width:6px;}
+.wh-body::-webkit-scrollbar-thumb{background:var(--nebula); border-radius:6px;}
+
+.result-banner{margin-top:12px; padding:12px 14px; border-radius:10px; font-size:13px; font-weight:600; text-align:center; display:none;}
+.result-banner.win{display:block; background:rgba(74,222,128,0.15); border:1px solid rgba(74,222,128,0.4); color:var(--shield-hi);}
+.result-banner.lose{display:block; background:rgba(248,113,113,0.15); border:1px solid rgba(248,113,113,0.4); color:var(--shield-lo);}
+
+@media (max-width:860px){
+  .main-layout{flex-direction:column; min-height:0;}
+  .map-wrap{flex:1 1 auto; min-height:0;}
+  .list-wrap{flex:1 1 auto; min-height:0;}
+  .sidebar{width:100%; flex:0 0 auto; flex-direction:row; border-left:none; border-top:1px solid var(--line); max-height:32vh;}
+  .side-panel{min-height:0;}
+  .statbar{gap:10px; font-size:10px;}
+  .modal{padding:22px 18px 18px;}
+  .hint{font-size:9.5px; padding:5px 8px; left:8px; bottom:8px; max-width:56%; line-height:1.35;}
+  .map-controls{right:8px; bottom:8px; gap:6px;}
+  .map-btn{width:32px; height:32px; font-size:15px;}
+}
+@media (max-width:560px){
+  .sidebar{flex-direction:column; max-height:38vh;}
+}
+</style>
+</head>
+<body>
+<div class="stars"></div>
+<div class="comet" style="animation-delay:0s;"></div>
+<div class="comet" style="animation-delay:7s; top:60%; left:-8%;"></div>
+
+<header>
+  <div class="logo-word">SOLARMAP<span class="war">: WAR</span></div>
+  <div class="tagline">claim it free. defend it hard. take what isn't yours.</div>
+  <div class="statbar">
+    <span><span class="dot"></span><b id="online-count">·</b> live</span>
+    <span>total visits — <b id="visitor-count">···</b></span>
+    <span>link clicks — <b id="click-count">···</b></span>
+    <span>territories claimed — <b id="claimed-count">···</b>/14</span>
+    <span>your empire — <b id="my-empire-count">···</b></span>
+  </div>
+</header>
+
+<div class="main-layout">
+  <button class="view-toggle-float" id="view-toggle-btn" title="switch view">📋 List</button>
+
+  <div class="map-wrap" id="mapwrap">
+    <div id="zoomlayer">
+      <svg id="solarsvg" viewBox="0 0 1000 1000" preserveAspectRatio="xMidYMid meet"></svg>
+    </div>
+    <div class="map-controls">
+      <button class="map-btn" id="zoom-in">+</button>
+      <button class="map-btn" id="zoom-out">−</button>
+      <button class="map-btn" id="zoom-reset">⌖</button>
+    </div>
+    <div class="hint">drag · pinch to zoom · tap a body</div>
+  </div>
+
+  <div class="list-wrap" id="listwrap" style="display:none;">
+    <div class="list-table" id="list-table"></div>
+  </div>
+
+  <div class="sidebar">
+    <div class="side-panel">
+      <div class="side-head">🏆 Leaderboard</div>
+      <div class="side-body" id="leaderboard-body"><div class="empty-note">no empires yet</div></div>
+    </div>
+    <div class="side-panel">
+      <div class="side-head">⚔ War Log</div>
+      <div class="side-body" id="history-body"><div class="empty-note">no battles yet — be the first</div></div>
+    </div>
+  </div>
+</div>
+
+<footer>Claim a free planet, hide a weak point, and defend it. Attackers get one guess per world — find it before someone finds yours.</footer>
+
+<div class="modal-backdrop" id="modal">
+  <div class="modal">
+    <button class="modal-close" id="modal-close">✕</button>
+    <div class="modal-eyebrow" id="modal-type">celestial body</div>
+    <h2 id="modal-name">—</h2>
+
+    <div class="modal-status">
+      <div class="top-row">
+        <div>
+          <div class="label">current holder</div>
+          <div class="value" id="modal-owner">—</div>
+          <a class="visit-btn" id="visit-btn" href="#" target="_blank" rel="noopener" style="display:none;">Visit ↗</a>
+        </div>
+      </div>
+      <div class="shield-wrap" id="shield-wrap" style="display:none;">
+        <div class="shield-label"><span>defense level</span><span id="shield-value">1/5</span></div>
+        <div class="defense-pips" id="defense-pips"></div>
+        <div class="grace-note" id="grace-note" style="display:none;"></div>
+        <div class="level-note" id="level-note" style="display:none;"></div>
+        <div class="stats-line" id="stats-line" style="display:none;"></div>
+      </div>
+    </div>
+
+    <!-- UNCLAIMED: free claim form (step 1: info, step 2: choose weak point) -->
+    <div id="panel-claim" style="display:none;">
+      <div id="claim-step-info">
+        <div class="field">
+          <label>Name</label>
+          <input type="text" id="claim-name" maxlength="20" placeholder="e.g. Example Inc.">
+        </div>
+        <div class="field">
+          <label>Your Link (logo on the map)</label>
+          <input type="text" id="claim-link" placeholder="yourlink.com">
+          <div class="helper">we'll pull your site's favicon and plant it on the body</div>
+        </div>
+        <button class="action-btn claim-style" id="claim-continue">claim territory — free</button>
+        <div class="modal-error" id="claim-error"></div>
+      </div>
+      <div id="claim-step-grid" style="display:none;">
+        <div class="weakgrid-label">hide your weak point — pick 1 of 5 cells</div>
+        <div class="weakgrid" id="claim-grid"></div>
+        <div class="modal-note">this cell stays secret — only you can see it. tap one to finish claiming.</div>
+      </div>
+    </div>
+
+    <!-- OWNED BY ME: manage defense panel -->
+    <div id="panel-manage" style="display:none;">
+      <div class="weakgrid-label" id="manage-grid-label">your hidden weak point</div>
+      <div class="weakgrid" id="manage-grid"></div>
+      <button class="action-btn reinforce-style" id="upgrade-toggle" style="display:none;">⬆ upgrade defense</button>
+      <button class="action-btn reinforce-style" id="reposition-toggle">reposition weak point</button>
+      <div class="modal-note" id="manage-note"></div>
+      <div class="modal-error" id="manage-error"></div>
+    </div>
+
+    <!-- OWNED BY SOMEONE ELSE: attack panel -->
+    <div id="panel-attack" style="display:none;">
+      <div class="weakgrid-label" style="font-size:15px; font-weight:800; letter-spacing:0.5px; margin-bottom:12px;">Attack:</div>
+      <div class="field">
+        <label>Your Name</label>
+        <input type="text" id="attack-name" maxlength="20" placeholder="e.g. Example Inc.">
+      </div>
+      <div class="field">
+        <label>Your Link (logo on the map)</label>
+        <input type="text" id="attack-link" placeholder="yourlink.com">
+      </div>
+      <div class="modal-note" id="attack-limits"></div>
+      <div class="weakgrid-label" style="margin-top:10px;">pick one cell — you only get one guess</div>
+      <div class="weakgrid" id="attack-grid"></div>
+      <div class="modal-error" id="attack-error"></div>
+      <div class="result-banner" id="result-banner"></div>
+    </div>
+
+    <div class="modal-warhistory">
+      <div class="wh-head">⚔ War History — this body</div>
+      <div class="wh-body" id="modal-warhistory-body"><div class="empty-note">no history yet for this one</div></div>
+    </div>
+  </div>
+</div>
+
+<div class="modal-backdrop" id="empire-modal">
+  <div class="modal">
+    <button class="modal-close" id="empire-modal-close">✕</button>
+    <div class="modal-eyebrow">empire</div>
+    <h2 id="empire-modal-name">—</h2>
+    <a class="visit-btn" id="empire-visit-btn" href="#" target="_blank" rel="noopener" style="display:none;">Visit ↗</a>
+    <div class="modal-warhistory" style="margin-top:18px;">
+      <div class="wh-head">🪐 Territories</div>
+      <div class="wh-body" id="empire-planets-body"></div>
+    </div>
+  </div>
+</div>
+
+<script>
+const CX = 500, CY = 500;
+
+const BODIES = [
+  {id:'sol', name:'The Sun', type:'star', r:0, angle:0, size:50, color:'#ffcf5c', period:0},
+  {id:'mercury', name:'Mercury', type:'planet', r:95, angle:-90, size:9, color:'#b7a99a', period:16},
+  {id:'venus', name:'Venus', type:'planet', r:130, angle:-54, size:13, color:'#e8c27e', period:24},
+  {id:'earth', name:'Earth', type:'planet', r:165, angle:-18, size:14, color:'#5b9bd5', period:34},
+  {id:'moon', name:'the Moon', type:'moon', r:24, angle:-40, size:5, color:'#cfcfcf', parent:'earth', period:6},
+  {id:'mars', name:'Mars', type:'planet', r:195, angle:18, size:11, color:'#c1502e', period:52},
+  {id:'asteroids', name:'Asteroid Belt', type:'neutral zone', r:225, angle:54, size:8, color:'#9c9c9c', period:78, dashed:true},
+  {id:'jupiter', name:'Jupiter', type:'planet', r:265, angle:90, size:32, color:'#d8ae7e', period:120},
+  {id:'europa', name:'Europa', type:'moon', r:44, angle:65, size:5, color:'#e6dcc8', parent:'jupiter', period:9},
+  {id:'saturn', name:'Saturn', type:'planet', r:310, angle:126, size:28, color:'#e3cf9a', period:170, rings:true},
+  {id:'titan', name:'Titan', type:'moon', r:48, angle:150, size:5, color:'#e0a95c', parent:'saturn', period:11},
+  {id:'uranus', name:'Uranus', type:'planet', r:350, angle:162, size:20, color:'#9fdde0', period:230},
+  {id:'neptune', name:'Neptune', type:'planet', r:385, angle:198, size:20, color:'#4f6fd8', period:290},
+  {id:'pluto', name:'Pluto', type:'dwarf planet', r:415, angle:234, size:8, color:'#d9c3a9', period:360, dashed:true},
+];
+
+// ---- game constants ----
+const GRACE_MS = 2 * 3600000;                      // 2h immunity after claim/conquest
+const ATTACK_COOLDOWN_MS = 2 * 3600000;             // 2h between attacks, per player, global
+const REPOSITION_COOLDOWN_L5_MS = 24 * 3600000;     // level 5: reposition once per 24h
+// cumulative hours since claimedAt at which each level unlocks (index = level-1)
+const LEVEL_INTERVALS_H = [2, 6, 12, 24]; // hours needed for EACH step: 1→2, 2→3, 3→4, 4→5 — counted from the last level-up, not from claim
+
+// Max achievable defense level differs by body — mirrors api/_constants.js.
+const MAX_LEVEL_BY_BODY = {
+  moon:2, europa:2, titan:2, asteroids:2,
+  mercury:3, venus:3, mars:3, pluto:3,
+  earth:4, saturn:4, uranus:4, neptune:4,
+  jupiter:5, sol:5,
+};
+function maxLevelForBody(bodyId){ return MAX_LEVEL_BY_BODY[bodyId] || 5; }
+
+const NS = 'http://www.w3.org/2000/svg';
+const svg = document.getElementById('solarsvg');
+function el(tag, attrs){ const e = document.createElementNS(NS, tag); for(const k in attrs) e.setAttribute(k, attrs[k]); return e; }
+function polar(cx, cy, r, angleDeg){ const a = (angleDeg*Math.PI)/180; return {x: cx + r*Math.cos(a), y: cy + r*Math.sin(a)}; }
+
+let claims = {};      // id -> {owner, link, ownerToken, claimedAt, immuneUntil, weakRow, weakCol, lastRepositionTs, attacksReceived, attacksSurvived}
+let historyList = [];
+let angleState = {};
+BODIES.forEach(b => angleState[b.id] = b.angle);
+let selectedId = null;
+let myEmpire = {};    // private: bodyId -> ownerToken I believe I hold
+const refs = {};
+
+/* ---------- BUILD MAP (once) ---------- */
+const defs = el('defs', {});
+const sunGrad = el('radialGradient', {id:'sungrad', cx:'40%', cy:'35%'});
+sunGrad.appendChild(el('stop', {offset:'0%', 'stop-color':'#fff6d6'}));
+sunGrad.appendChild(el('stop', {offset:'55%', 'stop-color':'#ffcf5c'}));
+sunGrad.appendChild(el('stop', {offset:'100%', 'stop-color':'#ff6a3d'}));
+defs.appendChild(sunGrad);
+svg.appendChild(defs);
+
+BODIES.filter(b=>!b.parent && b.r>0).forEach(b=>{
+  svg.appendChild(el('circle', {cx:CX, cy:CY, r:b.r, class:'orbit-ring'+(b.dashed?' dashed':'')}));
+});
+
+const corona = el('circle', {cx:CX, cy:CY, r:64, fill:'none', stroke:'rgba(255,178,61,0.35)', 'stroke-width':10, class:'sun-corona'});
+svg.appendChild(corona);
+
+BODIES.forEach(body=>{
+  const clipId = 'clip-'+body.id;
+  const clipCircle = el('circle', {cx:0, cy:0, r:body.size*0.72});
+  const clipPath = el('clipPath', {id:clipId});
+  clipPath.appendChild(clipCircle);
+  defs.appendChild(clipPath);
+
+  const g = el('g', {class:'body-node', 'data-id':body.id});
+
+  let ringDecor = null;
+  if(body.rings){
+    ringDecor = el('ellipse', {rx:body.size*1.9, ry:body.size*0.55, fill:'none', stroke:'rgba(227,207,154,0.55)', 'stroke-width':2.5});
+    g.appendChild(ringDecor);
+  }
+
+  const glow = el('circle', {r:body.size+6, fill:'none', 'stroke-width':2.5, opacity:0});
+  g.appendChild(glow);
+
+  const core = el('circle', {r:body.size, class:'core', fill: body.id==='sol' ? 'url(#sungrad)' : body.color, stroke:'rgba(255,255,255,0.25)', 'stroke-width':1});
+  g.appendChild(core);
+
+  const favImg = el('image', {width:body.size*1.44, height:body.size*1.44, 'clip-path':`url(#${clipId})`, opacity:0, preserveAspectRatio:'xMidYMid slice'});
+  g.appendChild(favImg);
+
+  const label = el('text', {class:'body-label', 'font-size': body.parent ? 10.5 : 13.5});
+  label.textContent = body.name;
+  g.appendChild(label);
+
+  const ownerLabel = el('text', {class:'body-owner', 'font-size': body.parent ? 9.5 : 11.5});
+  g.appendChild(ownerLabel);
+
+  g.addEventListener('click', ()=>openModal(body.id));
+  svg.appendChild(g);
+
+  refs[body.id] = {g, core, glow, favImg, label, ownerLabel, ringDecor, clipCircle};
+});
+
+function computePos(body){
+  if(body.parent){
+    const parent = BODIES.find(b=>b.id===body.parent);
+    const ppos = computePos(parent);
+    return polar(ppos.x, ppos.y, body.r, angleState[body.id]);
+  }
+  return polar(CX, CY, body.r, angleState[body.id]);
+}
+
+/* ---------- GAME LOGIC ---------- */
+function isEligibleForUpgrade(claim, bodyId){
+  const level = claim.level || 1;
+  if(level >= maxLevelForBody(bodyId)) return false;
+  const requiredMs = LEVEL_INTERVALS_H[level-1] * 3600000;
+  const since = Date.now() - (claim.lastLevelUpTs || claim.claimedAt);
+  return since >= requiredMs;
+}
+function hoursUntilNextLevel(claim, bodyId){
+  const level = claim.level || 1;
+  if(level >= maxLevelForBody(bodyId)) return null;
+  const requiredMs = LEVEL_INTERVALS_H[level-1] * 3600000;
+  const since = Date.now() - (claim.lastLevelUpTs || claim.claimedAt);
+  return Math.max(0, (requiredMs - since) / 3600000);
+}
+function levelColor(level){
+  if(level >= 4) return getCss('--shield-hi');
+  if(level >= 3) return getCss('--shield-mid');
+  return getCss('--shield-lo');
+}
+function getCss(varName){ return getComputedStyle(document.documentElement).getPropertyValue(varName).trim(); }
+function isImmune(claim){ return claim && claim.immuneUntil && claim.immuneUntil > Date.now(); }
+/* token generation now happens server-side (crypto.randomBytes) */
+function iOwn(bodyId){
+  const claim = claims[bodyId];
+  // The server never echoes ownerToken back — even to the real owner. It only
+  // includes weakRow/weakCol in the response when the token we supplied
+  // matched server-side, so that field's presence IS the proof of ownership.
+  return !!(claim && myEmpire[bodyId] && typeof claim.weakRow === 'number');
+}
+
+function updatePositions(){
+  BODIES.forEach(body=>{
+    const pos = computePos(body);
+    const r = refs[body.id];
+    const claim = claims[body.id];
+
+    r.core.setAttribute('cx', pos.x); r.core.setAttribute('cy', pos.y);
+    r.glow.setAttribute('cx', pos.x); r.glow.setAttribute('cy', pos.y);
+    r.clipCircle.setAttribute('cx', pos.x); r.clipCircle.setAttribute('cy', pos.y);
+    r.favImg.setAttribute('x', pos.x - body.size*0.72);
+    r.favImg.setAttribute('y', pos.y - body.size*0.72);
+    if(r.ringDecor){ r.ringDecor.setAttribute('cx', pos.x); r.ringDecor.setAttribute('cy', pos.y); }
+
+    const labelY = pos.y - body.size - (claim ? 20 : 10);
+    r.label.setAttribute('x', pos.x); r.label.setAttribute('y', labelY);
+    r.ownerLabel.setAttribute('x', pos.x); r.ownerLabel.setAttribute('y', labelY-13);
+
+    if(claim){
+      const level = claim.level || 1;
+      const c = levelColor(level);
+      r.glow.setAttribute('stroke', c); r.glow.setAttribute('opacity', 0.9);
+      r.core.setAttribute('stroke', c); r.core.setAttribute('stroke-width', 2);
+      r.ownerLabel.textContent = (isImmune(claim) ? '🛡 ' : '⚑ ') + claim.owner;
+      r.ownerLabel.setAttribute('opacity', 1);
+    } else {
+      r.glow.setAttribute('opacity', 0);
+      r.core.setAttribute('stroke', 'rgba(255,255,255,0.25)'); r.core.setAttribute('stroke-width', 1);
+      r.ownerLabel.setAttribute('opacity', 0);
+    }
+  });
+}
+
+let lastT = null;
+function tick(t){
+  if(lastT===null) lastT = t;
+  const dt = (t - lastT)/1000; lastT = t;
+  BODIES.forEach(b=>{ if(!b.period) return; angleState[b.id] = (angleState[b.id] + (360/b.period)*dt) % 360; });
+  updatePositions();
+  requestAnimationFrame(tick);
+}
+requestAnimationFrame(tick);
+
+/* ---------- OWNER COLORS & FAVICON ---------- */
+function faviconUrl(link){
+  if(!link) return null;
+  let domain = link.trim();
+  if(!domain) return null;
+  if(!/^https?:\/\//i.test(domain)) domain = 'https://' + domain;
+  try{ new URL(domain); }catch(e){ return null; }
+  return `https://www.google.com/s2/favicons?sz=64&domain_url=${encodeURIComponent(domain)}`;
+}
+function applyFavicon(id, link){
+  const url = faviconUrl(link);
+  const r = refs[id];
+  if(!url){ r.favImg.setAttribute('opacity', 0); return; }
+  r.favImg.setAttribute('href', url);
+  r.favImg.setAttribute('opacity', 1);
+}
+function escapeHtml(s){ return String(s).replace(/[&<>"']/g, c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
+function timeAgo(ts){
+  const s = Math.floor((Date.now()-ts)/1000);
+  if(s<60) return 'just now';
+  if(s<3600) return Math.floor(s/60)+'m ago';
+  if(s<86400) return Math.floor(s/3600)+'h ago';
+  return Math.floor(s/86400)+'d ago';
+}
+function fmtDuration(ms){
+  if(ms<=0) return 'now';
+  const h = Math.floor(ms/3600000), m = Math.floor((ms%3600000)/60000);
+  if(h>0) return `${h}h ${m}m`;
+  return `${m}m`;
+}
+function fmtClock(ts){ return new Date(ts).toLocaleTimeString('en-US', {hour:'2-digit', minute:'2-digit'}); }
+
+/* ---------- STORAGE ---------- */
+// myEmpire (which bodies I hold + my secret bearer token for each) and
+// playerToken (my anonymous cooldown identity) live in this browser only —
+// localStorage, since this is a real deployed site, not a Claude Artifact.
+function loadMyEmpire(){
+  try{ return JSON.parse(localStorage.getItem('empire_v2') || '{}'); }
+  catch(e){ return {}; }
+}
+function saveMyEmpire(){
+  try{ localStorage.setItem('empire_v2', JSON.stringify(myEmpire)); }catch(e){}
+}
+function getPlayerToken(){
+  let t = localStorage.getItem('player_token');
+  if(!t){
+    t = (crypto.randomUUID ? crypto.randomUUID() : (Date.now().toString(36)+Math.random().toString(36).slice(2)));
+    localStorage.setItem('player_token', t);
+  }
+  return t;
+}
+const playerToken = getPlayerToken();
+
+async function fetchWorld(){
+  try{
+    const res = await fetch('/api/world', {
+      method:'POST',
+      headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({ myTokens: myEmpire })
+    });
+    const data = await res.json();
+    claims = data.claims || {};
+    historyList = data.history || [];
+    document.getElementById('click-count').textContent = (data.clicks || 0).toLocaleString('en-US');
+    return true;
+  }catch(e){
+    claims = {}; historyList = [];
+    return false;
+  }
+}
+
+async function loadAll(){
+  myEmpire = loadMyEmpire();
+  await fetchWorld();
+  Object.keys(claims).forEach(id => applyFavicon(id, claims[id].link));
+  updatePositions();
+  updateCounts();
+  renderLeaderboard();
+  renderHistory();
+  await bumpVisitors();
+  await sendHeartbeat();
+}
+
+// re-fetch world state from the server (after any action, or periodically)
+async function refreshWorld(){
+  await fetchWorld();
+  Object.keys(claims).forEach(id => applyFavicon(id, claims[id].link));
+  updatePositions();
+  updateCounts();
+  renderLeaderboard();
+  renderHistory();
+}
+setInterval(refreshWorld, 15000);
+
+function updateCounts(){
+  document.getElementById('claimed-count').textContent = Object.keys(claims).length;
+  let mine = 0;
+  Object.keys(claims).forEach(id=>{ if(iOwn(id)) mine++; });
+  document.getElementById('my-empire-count').textContent = mine;
+}
+
+async function bumpVisitors(){
+  try{
+    const res = await fetch('/api/visit', { method:'POST' });
+    const data = await res.json();
+    document.getElementById('visitor-count').textContent = (data.count || 0).toLocaleString('en-US');
+  }catch(e){ document.getElementById('visitor-count').textContent = '—'; }
+}
+
+// real "who's online right now" — refreshes this tab's presence key on the
+// server every 20s (well under its 45s expiry) and shows the live count.
+async function sendHeartbeat(){
+  try{
+    const res = await fetch('/api/heartbeat', {
+      method:'POST',
+      headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({ playerToken })
+    });
+    const data = await res.json();
+    document.getElementById('online-count').textContent = data.online || 1;
+  }catch(e){ /* keep last known value on failure */ }
+}
+setInterval(sendHeartbeat, 20000);
+document.addEventListener('visibilitychange', ()=>{
+  if(document.visibilityState === 'visible') sendHeartbeat();
+});
+
+// fire-and-forget click tracking — never blocks the actual navigation
+function trackClick(){
+  try{
+    fetch('/api/click', { method:'POST' })
+      .then(r=>r.json())
+      .then(d=>{ document.getElementById('click-count').textContent = (d.count || 0).toLocaleString('en-US'); })
+      .catch(()=>{});
+  }catch(e){}
+}
+
+/* ---------- SIDEBAR ---------- */
+function renderLeaderboard(){
+  const box = document.getElementById('leaderboard-body');
+  const totals = {}; // owner -> {count, levelSum, link, bodyIds}
+  Object.entries(claims).forEach(([bodyId, c])=>{
+    if(!totals[c.owner]) totals[c.owner] = {count:0, levelSum:0, link:c.link, bodyIds:[]};
+    totals[c.owner].count += 1;
+    totals[c.owner].levelSum += (c.level || 1);
+    totals[c.owner].bodyIds.push(bodyId);
+    if(c.link) totals[c.owner].link = c.link;
+  });
+  const ranked = Object.entries(totals).sort((a,b)=> b[1].count - a[1].count || b[1].levelSum - a[1].levelSum);
+  if(!ranked.length){ box.innerHTML = '<div class="empty-note">no empires yet</div>'; return; }
+  box.innerHTML = ranked.map(([owner, d], i)=>{
+    const fav = faviconUrl(d.link);
+    const avatarHtml = fav ? `<img src="${fav}" onerror="this.parentElement.textContent='${escapeHtml(owner[0]||'?')}'">` : escapeHtml(owner[0]||'?');
+    const avgLevel = (d.levelSum / d.count).toFixed(1);
+    return `<div class="lb-row" data-owner="${escapeHtml(owner)}">
+      <div class="lb-rank">${i+1}</div>
+      <div class="lb-avatar">${avatarHtml}</div>
+      <div class="lb-info"><div class="lb-name">${escapeHtml(owner)}</div><div class="lb-sub">${d.count} ${d.count===1?'planet':'planets'}</div></div>
+      <div class="lb-value">Lv ${avgLevel}</div>
+    </div>`;
+  }).join('');
+
+  box.querySelectorAll('.lb-row').forEach(row=>{
+    row.style.cursor = 'pointer';
+    row.addEventListener('click', ()=>{
+      const owner = row.getAttribute('data-owner');
+      openEmpireModal(owner, totals[owner]);
+    });
+  });
+}
+
+function openEmpireModal(owner, data){
+  document.getElementById('empire-modal-name').textContent = owner;
+  const visitBtn = document.getElementById('empire-visit-btn');
+  const url = data.link ? (data.link.startsWith('http') ? data.link : 'https://'+data.link) : '';
+  if(url){ visitBtn.href = url; visitBtn.style.display = 'inline-block'; visitBtn.onclick = trackClick; } else { visitBtn.style.display = 'none'; }
+
+  const planetsBody = document.getElementById('empire-planets-body');
+  const rows = data.bodyIds.map(bodyId=>{
+    const body = BODIES.find(b=>b.id===bodyId);
+    const claim = claims[bodyId];
+    const level = claim.level || 1;
+    const max = maxLevelForBody(bodyId);
+    return `<div class="hist-row">
+      <div class="hist-icon">🪐</div>
+      <div class="hist-text">${escapeHtml(body ? body.name : bodyId)}<br><span class="hist-time">defense level ${level}/${max}</span></div>
+    </div>`;
+  }).join('');
+  planetsBody.innerHTML = rows || '<div class="empty-note">no territories</div>';
+
+  document.getElementById('empire-modal').classList.add('open');
+}
+document.getElementById('empire-modal-close').addEventListener('click', ()=>{
+  document.getElementById('empire-modal').classList.remove('open');
+});
+document.getElementById('empire-modal').addEventListener('click', (e)=>{
+  if(e.target.id === 'empire-modal') document.getElementById('empire-modal').classList.remove('open');
+});
+
+function historyLine(item){
+  const cell = (Number.isInteger(item.row) && Number.isInteger(item.col)) ? ` in cell ${item.row+1}x${item.col+1}` : '';
+  if(item.type === 'claim') return `<b>${escapeHtml(item.owner)}</b> settled ${escapeHtml(item.body)} — free claim`;
+  if(item.type === 'conquer') return `<b>${escapeHtml(item.owner)}</b> conquered ${escapeHtml(item.body)} from ${escapeHtml(item.from||'someone')}${cell}`;
+  if(item.type === 'repel') return `<b>${escapeHtml(item.owner)}</b> attacked ${escapeHtml(item.from||'the defender')} (${escapeHtml(item.body)}) without success${cell}`;
+  if(item.type === 'reposition') return `<b>${escapeHtml(item.owner)}</b> hid a new weak point on ${escapeHtml(item.body)}`;
+  return `<b>${escapeHtml(item.owner)}</b> — ${escapeHtml(item.body)}`;
+}
+function renderHistory(){
+  const box = document.getElementById('history-body');
+  if(!historyList.length){ box.innerHTML = '<div class="empty-note">no battles yet — be the first</div>'; return; }
+  box.innerHTML = historyList.map(item=>{
+    const fav = faviconUrl(item.link);
+    const icon = item.type==='conquer' ? '⚔' : item.type==='repel' ? '🛡' : item.type==='reposition' ? '🔧' : '⚑';
+    const iconHtml = fav ? `<img src="${fav}" onerror="this.parentElement.textContent='${icon}'">` : icon;
+    const cls = item.type==='conquer' ? 'hist-conquer' : item.type==='repel' ? 'hist-fail' : '';
+    return `<div class="hist-row">
+      <div class="hist-icon">${iconHtml}</div>
+      <div class="hist-text ${cls}">${historyLine(item)}<br><span class="hist-time">${timeAgo(item.ts)}</span></div>
+    </div>`;
+  }).join('');
+}
+function renderWarHistory(bodyId){
+  const box = document.getElementById('modal-warhistory-body');
+  const body = BODIES.find(b=>b.id===bodyId);
+  const items = historyList.filter(h => h.body === body.name).slice(0, 10);
+  if(!items.length){ box.innerHTML = '<div class="empty-note">no history yet for this one</div>'; return; }
+  box.innerHTML = items.map(item=>{
+    const fav = faviconUrl(item.link);
+    const icon = item.type==='conquer' ? '⚔' : item.type==='repel' ? '🛡' : item.type==='reposition' ? '🔧' : '⚑';
+    const iconHtml = fav ? `<img src="${fav}" onerror="this.parentElement.textContent='${icon}'">` : icon;
+    const cls = item.type==='conquer' ? 'hist-conquer' : item.type==='repel' ? 'hist-fail' : '';
+    return `<div class="hist-row">
+      <div class="hist-icon">${iconHtml}</div>
+      <div class="hist-text ${cls}">${historyLine(item)}<br><span class="hist-time">${timeAgo(item.ts)}</span></div>
+    </div>`;
+  }).join('');
+}
+/* history is now written server-side by claim/reposition/attack endpoints */
+
+/* ---------- GRID HELPERS ---------- */
+function buildGrid(containerEl, rows, opts){
+  // opts: {selectedRow, selectedCol, onCellClick, locked, resultRow, resultCol, resultHit}
+  containerEl.innerHTML = '';
+  containerEl.style.gridTemplateRows = `repeat(${rows}, 1fr)`;
+  for(let row=0; row<rows; row++){
+    for(let col=0; col<5; col++){
+      const cell = document.createElement('div');
+      cell.className = 'cell';
+      cell.dataset.row = row; cell.dataset.col = col;
+      if(opts.selectedRow===row && opts.selectedCol===col) cell.classList.add('mine');
+      if(opts.resultRow===row && opts.resultCol===col){
+        cell.classList.add(opts.resultHit ? 'hit' : 'mine');
+        cell.textContent = opts.resultHit ? '⚔' : '';
+      } else if(opts.resultRow!=null && opts.showMissMark){
+        // the cell the attacker actually clicked, if it was a miss
+      }
+      if(opts.clickedRow===row && opts.clickedCol===col && opts.resultHit===false){
+        cell.classList.add('miss-cell');
+        cell.textContent = '✕';
+      }
+      if(opts.locked){
+        cell.classList.add('locked');
+      } else if(opts.onCellClick){
+        cell.addEventListener('click', ()=> opts.onCellClick(row, col, cell));
+      }
+      containerEl.appendChild(cell);
+    }
+  }
+}
+
+/* ---------- MODAL ---------- */
+const modal = document.getElementById('modal');
+
+function renderDefensePips(level, max){
+  const wrap = document.getElementById('defense-pips');
+  wrap.innerHTML = '';
+  for(let i=1;i<=max;i++){
+    const pip = document.createElement('div');
+    pip.className = 'defense-pip' + (i<=level ? ' filled' : '');
+    wrap.appendChild(pip);
+  }
+}
+
+function renderDefenseUI(claim){
+  const wrap = document.getElementById('shield-wrap');
+  if(!claim){ wrap.style.display = 'none'; return; }
+  wrap.style.display = 'block';
+  const max = maxLevelForBody(selectedId);
+  const level = claim.level || 1;
+  const eligible = isEligibleForUpgrade(claim, selectedId);
+  document.getElementById('shield-value').textContent = level + '/' + max;
+  renderDefensePips(level, max);
+
+  const graceNote = document.getElementById('grace-note');
+  if(isImmune(claim)){
+    graceNote.style.display = 'block';
+    graceNote.textContent = `🛡 protected until ${fmtClock(claim.immuneUntil)} — freshly claimed`;
+  } else {
+    graceNote.style.display = 'none';
+  }
+
+  const levelNote = document.getElementById('level-note');
+  if(level < max && !eligible){
+    const hrs = hoursUntilNextLevel(claim, selectedId);
+    levelNote.style.display = 'block';
+    levelNote.textContent = `next defense level available in ${fmtDuration(hrs*3600000)}`;
+  } else {
+    levelNote.style.display = 'none';
+  }
+
+  const statsLine = document.getElementById('stats-line');
+  const received = claim.attacksReceived || 0;
+  const survived = claim.attacksSurvived || 0;
+  if(received > 0){
+    statsLine.style.display = 'block';
+    statsLine.textContent = `attacked ${received}× · survived ${survived}×`;
+  } else {
+    statsLine.style.display = 'none';
+  }
+}
+
+async function openModal(id){
+  selectedId = id;
+  const body = BODIES.find(b=>b.id===id);
+  const claim = claims[id];
+  document.getElementById('modal-type').textContent = body.type;
+  document.getElementById('modal-name').textContent = body.name;
+  document.getElementById('claim-error').textContent = '';
+  document.getElementById('manage-error').textContent = '';
+  document.getElementById('attack-error').textContent = '';
+  document.getElementById('result-banner').className = 'result-banner';
+  document.getElementById('result-banner').textContent = '';
+  document.getElementById('claim-name').value = '';
+  document.getElementById('claim-link').value = '';
+  document.getElementById('attack-name').value = '';
+  document.getElementById('attack-link').value = '';
+  document.getElementById('claim-step-info').style.display = 'block';
+  document.getElementById('claim-step-grid').style.display = 'none';
+  repositioning = false;
+
+  const visitBtn = document.getElementById('visit-btn');
+  const panelClaim = document.getElementById('panel-claim');
+  const panelManage = document.getElementById('panel-manage');
+  const panelAttack = document.getElementById('panel-attack');
+  panelClaim.style.display = 'none';
+  panelManage.style.display = 'none';
+  panelAttack.style.display = 'none';
+
+  if(!claim){
+    document.getElementById('modal-owner').innerHTML = `<span class="unclaimed-line">unclaimed</span>`;
+    visitBtn.style.display = 'none';
+    renderDefenseUI(null);
+    panelClaim.style.display = 'block';
+  } else {
+    document.getElementById('modal-owner').innerHTML = `<span class="owner-line">⚑ ${escapeHtml(claim.owner)}</span>`;
+    const url = faviconUrl(claim.link) ? (/^https?:\/\//i.test(claim.link) ? claim.link : 'https://'+claim.link) : null;
+    if(url){ visitBtn.href = url; visitBtn.style.display = 'inline-block'; visitBtn.onclick = trackClick; } else { visitBtn.style.display = 'none'; }
+    renderDefenseUI(claim);
+
+    if(iOwn(id)){
+      panelManage.style.display = 'block';
+      renderManagePanel(claim);
+    } else {
+      panelAttack.style.display = 'block';
+      await renderAttackPanel(claim);
+    }
+  }
+
+  renderWarHistory(id);
+  modal.classList.add('open');
+}
+function closeModal(){ modal.classList.remove('open'); selectedId = null; }
+document.getElementById('modal-close').addEventListener('click', closeModal);
+modal.addEventListener('click', (e)=>{ if(e.target===modal) closeModal(); });
+
+/* ---- claim step 1 -> step 2 ---- */
+document.getElementById('claim-continue').addEventListener('click', ()=>{
+  const name = document.getElementById('claim-name').value.trim();
+  const errorEl = document.getElementById('claim-error');
+  if(!name){ errorEl.textContent = 'enter a name'; return; }
+  if(claims[selectedId]){ errorEl.textContent = 'someone just claimed this — try attacking instead'; return; }
+  errorEl.textContent = '';
+  document.getElementById('claim-step-info').style.display = 'none';
+  document.getElementById('claim-step-grid').style.display = 'block';
+  const grid = document.getElementById('claim-grid');
+  buildGrid(grid, 1, { onCellClick: finalizeClaim });
+});
+
+async function finalizeClaim(row, col){
+  const body = BODIES.find(b=>b.id===selectedId);
+  const name = document.getElementById('claim-name').value.trim();
+  const link = document.getElementById('claim-link').value.trim();
+  const errorEl = document.getElementById('claim-error');
+
+  try{
+    const res = await fetch('/api/claim', {
+      method:'POST',
+      headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({ bodyId:selectedId, bodyName:body.name, name, link, weakRow:row, weakCol:col })
+    });
+    const data = await res.json();
+    if(!res.ok || !data.ok){
+      errorEl.textContent = data.error || 'transmission failed — try again';
+      if(res.status === 409){
+        document.getElementById('claim-step-grid').style.display='none';
+        document.getElementById('claim-step-info').style.display='block';
+      }
+      return;
+    }
+    myEmpire[selectedId] = data.ownerToken;
+    saveMyEmpire();
+    await refreshWorld();
+    closeModal();
+  }catch(e){ errorEl.textContent = 'transmission failed — try again'; }
+}
+
+/* ---- manage / reposition ---- */
+let repositioning = false;
+
+function renderManagePanel(claim){
+  const max = maxLevelForBody(selectedId);
+  const level = claim.level || 1;
+  const eligible = isEligibleForUpgrade(claim, selectedId);
+  const grid = document.getElementById('manage-grid');
+  const label = document.getElementById('manage-grid-label');
+  const btn = document.getElementById('reposition-toggle');
+  const upgradeBtn = document.getElementById('upgrade-toggle');
+  const note = document.getElementById('manage-note');
+
+  if(eligible){
+    upgradeBtn.style.display = 'block';
+    upgradeBtn.textContent = `⬆ upgrade defense (${level}/${max} → ${level+1}/${max})`;
+  } else {
+    upgradeBtn.style.display = 'none';
+  }
+
+  if(!repositioning){
+    label.textContent = 'your hidden weak point';
+    buildGrid(grid, level, { selectedRow: claim.weakRow, selectedCol: claim.weakCol, locked:true });
+
+    if(level >= max){
+      const sinceReposition = Date.now() - claim.lastRepositionTs;
+      if(sinceReposition < REPOSITION_COOLDOWN_L5_MS){
+        btn.disabled = true;
+        note.textContent = `max level — next reposition available in ${fmtDuration(REPOSITION_COOLDOWN_L5_MS - sinceReposition)}`;
+      } else {
+        btn.disabled = false;
+        note.textContent = 'max level reached — you can reposition once every 24h';
+      }
+    } else {
+      btn.disabled = false;
+      note.textContent = `you can move your weak point any time before level ${max}`;
+    }
+    btn.textContent = 'reposition weak point';
+  } else {
+    label.textContent = 'pick a new hiding spot';
+    buildGrid(grid, level, { onCellClick: (row,col)=> submitReposition(row,col) });
+    note.textContent = 'tap a cell to move your weak point there';
+    btn.textContent = 'cancel';
+  }
+}
+
+document.getElementById('upgrade-toggle').addEventListener('click', async ()=>{
+  const conqueredId = selectedId;
+  const errorEl = document.getElementById('manage-error');
+  if(!conqueredId || !iOwn(conqueredId)) return;
+  try{
+    const res = await fetch('/api/upgrade', {
+      method:'POST',
+      headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({ bodyId: conqueredId, ownerToken: myEmpire[conqueredId] })
+    });
+    const data = await res.json();
+    if(!res.ok || !data.ok){
+      errorEl.textContent = data.error || 'transmission failed — try again';
+      return;
+    }
+    errorEl.textContent = '';
+    await refreshWorld();
+    if(selectedId === conqueredId){
+      renderDefenseUI(claims[conqueredId]);
+      renderManagePanel(claims[conqueredId]);
+    }
+  }catch(e){ errorEl.textContent = 'transmission failed — try again'; }
+});
+
+document.getElementById('reposition-toggle').addEventListener('click', ()=>{
+  const claim = claims[selectedId];
+  if(!claim) return;
+  repositioning = !repositioning;
+  renderManagePanel(claim);
+});
+
+async function submitReposition(row, col){
+  const conqueredId = selectedId;
+  const claim = claims[conqueredId];
+  const body = BODIES.find(b=>b.id===conqueredId);
+  const errorEl = document.getElementById('manage-error');
+  if(!claim || !iOwn(conqueredId)){ errorEl.textContent = 'you no longer hold this body'; return; }
+
+  try{
+    const res = await fetch('/api/reposition', {
+      method:'POST',
+      headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({ bodyId:conqueredId, bodyName:body.name, ownerToken: myEmpire[conqueredId], weakRow:row, weakCol:col })
+    });
+    const data = await res.json();
+    if(!res.ok || !data.ok){
+      errorEl.textContent = data.error || 'transmission failed — try again';
+      return;
+    }
+    errorEl.textContent = '';
+    repositioning = false;
+    await refreshWorld();
+    if(selectedId === conqueredId){
+      renderManagePanel(claims[conqueredId]);
+    }
+  }catch(e){ errorEl.textContent = 'transmission failed — try again'; }
+}
+
+/* ---- attack ---- */
+function renderAttackPanel(claim){
+  const level = claim.level || 1;
+
+  const grid = document.getElementById('attack-grid');
+  const limitsNote = document.getElementById('attack-limits');
+  const lastAttackTs = parseInt(localStorage.getItem('last_attack_ts_hint') || '0', 10);
+  const sinceAttack = Date.now() - lastAttackTs;
+
+  let locked = false;
+  if(isImmune(claim)){
+    limitsNote.textContent = `this world is under grace protection until ${fmtClock(claim.immuneUntil)} — no attacks possible yet`;
+    locked = true;
+  } else if(lastAttackTs && sinceAttack < ATTACK_COOLDOWN_MS){
+    limitsNote.textContent = `your next attack (anywhere) is available in ${fmtDuration(ATTACK_COOLDOWN_MS - sinceAttack)}`;
+    locked = true;
+  } else {
+    limitsNote.textContent = `you get one guess — after this, next attack in ${ATTACK_COOLDOWN_MS/3600000}h`;
+  }
+
+  buildGrid(grid, level, { locked, onCellClick: locked ? null : (row,col,cellEl)=> submitAttack(row,col,cellEl) });
+}
+
+async function submitAttack(row, col, cellEl){
+  // Capture the body being attacked NOW — never read the mutable global
+  // selectedId again inside async callbacks below, since the player could
+  // navigate to a different (their own!) planet before this resolves.
+  const attackedId = selectedId;
+  const claim = claims[attackedId];
+  const body = BODIES.find(b=>b.id===attackedId);
+  const name = document.getElementById('attack-name').value.trim();
+  const link = document.getElementById('attack-link').value.trim();
+  const errorEl = document.getElementById('attack-error');
+  const banner = document.getElementById('result-banner');
+
+  if(!name){ errorEl.textContent = 'enter a name before attacking'; return; }
+  errorEl.textContent = '';
+
+  // lock the whole grid immediately so they can't click twice
+  document.querySelectorAll('#attack-grid .cell').forEach(c=> c.classList.add('locked'));
+  cellEl.textContent = '…';
+
+  const defenderName = claim.owner;
+
+  try{
+    const res = await fetch('/api/attack', {
+      method:'POST',
+      headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({ bodyId:attackedId, bodyName:body.name, playerToken, guessRow:row, guessCol:col, name, link })
+    });
+    const data = await res.json();
+
+    if(!res.ok){
+      if(res.status === 429 && typeof data.retryAfterMs === 'number'){
+        localStorage.setItem('last_attack_ts_hint', String(Date.now() - (ATTACK_COOLDOWN_MS - data.retryAfterMs)));
+      }
+      errorEl.textContent = data.error || 'transmission failed — try again';
+      cellEl.textContent = '';
+      document.querySelectorAll('#attack-grid .cell').forEach(c=> c.classList.remove('locked'));
+      return;
+    }
+
+    localStorage.setItem('last_attack_ts_hint', String(Date.now()));
+    cellEl.classList.add(data.hit ? 'hit' : 'miss-cell');
+    cellEl.textContent = data.hit ? '⚔' : '✕';
+
+    if(data.hit){
+      myEmpire[attackedId] = data.ownerToken;
+      saveMyEmpire();
+      applyFavicon(attackedId, link);
+      banner.className = 'result-banner win';
+      banner.textContent = `⚔ Direct hit! You conquered ${body.name} from ${defenderName}.`;
+
+      await refreshWorld();
+      renderWarHistory(attackedId);
+
+      // immediately ask the new owner to hide their real weak point —
+      // guarded so this only touches the UI if the modal is still on
+      // this exact planet by the time the timer fires.
+      setTimeout(()=>{
+        if(selectedId !== attackedId) return;
+        document.getElementById('panel-attack').style.display = 'none';
+        document.getElementById('panel-claim').style.display = 'block';
+        document.getElementById('claim-step-info').style.display = 'none';
+        document.getElementById('claim-step-grid').style.display = 'block';
+        document.getElementById('modal-owner').innerHTML = `<span class="owner-line">⚑ ${escapeHtml(name)}</span>`;
+        renderDefenseUI(claims[attackedId]);
+        document.querySelector('#claim-step-grid .weakgrid-label').textContent = 'now hide your NEW weak point';
+        const grid = document.getElementById('claim-grid');
+        buildGrid(grid, 1, { onCellClick: async (r,c)=>{
+          const errEl = document.getElementById('claim-error');
+          const rres = await fetch('/api/reposition', {
+            method:'POST',
+            headers:{'Content-Type':'application/json'},
+            body: JSON.stringify({ bodyId:attackedId, bodyName:body.name, ownerToken: myEmpire[attackedId], weakRow:r, weakCol:c })
+          });
+          const rdata = await rres.json();
+          if(!rres.ok || !rdata.ok){ errEl.textContent = rdata.error || 'transmission failed'; return; }
+          if(selectedId === attackedId) closeModal();
+        }});
+      }, 1400);
+    } else {
+      banner.className = 'result-banner lose';
+      banner.textContent = `🛡 Miss. ${defenderName}'s weak point is still safe. Try another world in a while.`;
+      await refreshWorld();
+      if(selectedId === attackedId){
+        renderWarHistory(attackedId);
+        renderDefenseUI(claims[attackedId]);
+      }
+      document.getElementById('attack-limits').textContent = `next attack (anywhere) available in ${fmtDuration(ATTACK_COOLDOWN_MS)}`;
+    }
+  }catch(e){
+    errorEl.textContent = 'transmission failed — try again';
+    cellEl.textContent = '';
+    document.querySelectorAll('#attack-grid .cell').forEach(c=> c.classList.remove('locked'));
+  }
+}
+
+/* ---------- PAN & ZOOM ---------- */
+const mapwrap = document.getElementById('mapwrap');
+const zoomlayer = document.getElementById('zoomlayer');
+let scale = 1, panX = 0, panY = 0;
+let isDragging = false, startX=0, startY=0, startPanX=0, startPanY=0;
+function applyTransform(){ zoomlayer.style.transform = `translate(${panX}px, ${panY}px) scale(${scale})`; }
+
+mapwrap.addEventListener('mousedown', (e)=>{ isDragging = true; mapwrap.classList.add('dragging'); startX = e.clientX; startY = e.clientY; startPanX = panX; startPanY = panY; });
+window.addEventListener('mousemove', (e)=>{ if(!isDragging) return; panX = startPanX + (e.clientX - startX); panY = startPanY + (e.clientY - startY); applyTransform(); });
+window.addEventListener('mouseup', ()=>{ isDragging=false; mapwrap.classList.remove('dragging'); });
+
+let isPinching = false, pinchStartDist = 0, pinchStartScale = 1;
+function touchDist(t0, t1){ const dx=t0.clientX-t1.clientX, dy=t0.clientY-t1.clientY; return Math.sqrt(dx*dx+dy*dy); }
+
+mapwrap.addEventListener('touchstart', (e)=>{
+  if(e.touches.length===2){
+    isPinching = true; isDragging = false;
+    pinchStartDist = touchDist(e.touches[0], e.touches[1]);
+    pinchStartScale = scale;
+  } else if(e.touches.length===1){
+    isDragging = true; isPinching = false;
+    startX = e.touches[0].clientX; startY = e.touches[0].clientY; startPanX = panX; startPanY = panY;
+  }
+}, {passive:true});
+
+mapwrap.addEventListener('touchmove', (e)=>{
+  if(isPinching && e.touches.length===2){
+    e.preventDefault();
+    const newDist = touchDist(e.touches[0], e.touches[1]);
+    if(pinchStartDist>0){
+      scale = Math.min(3, Math.max(0.5, pinchStartScale * (newDist/pinchStartDist)));
+      applyTransform();
+    }
+  } else if(isDragging && e.touches.length===1){
+    panX = startPanX + (e.touches[0].clientX - startX);
+    panY = startPanY + (e.touches[0].clientY - startY);
+    applyTransform();
+  }
+}, {passive:false});
+
+mapwrap.addEventListener('touchend', (e)=>{
+  if(e.touches.length<2) isPinching=false;
+  if(e.touches.length<1) isDragging=false;
+});
+
+mapwrap.addEventListener('wheel', (e)=>{ e.preventDefault(); const delta = e.deltaY > 0 ? -0.1 : 0.1; scale = Math.min(3, Math.max(0.5, scale + delta)); applyTransform(); }, {passive:false});
+document.getElementById('zoom-in').addEventListener('click', ()=>{ scale = Math.min(3, scale+0.2); applyTransform(); });
+document.getElementById('zoom-out').addEventListener('click', ()=>{ scale = Math.max(0.5, scale-0.2); applyTransform(); });
+document.getElementById('zoom-reset').addEventListener('click', ()=>{ scale=1; panX=0; panY=0; applyTransform(); });
+
+/* ---------- LIST VIEW ---------- */
+const viewToggleBtn = document.getElementById('view-toggle-btn');
+const mapwrapEl = document.getElementById('mapwrap');
+const listwrapEl = document.getElementById('listwrap');
+let currentView = 'map';
+
+function renderListView(){
+  const box = document.getElementById('list-table');
+  box.innerHTML = BODIES.map(body=>{
+    const claim = claims[body.id];
+    const indent = body.parent ? 'margin-left:20px;' : '';
+    if(!claim){
+      return `<div class="list-row" style="${indent}" data-id="${body.id}">
+        <div class="list-dot" style="background:${body.color}22; border-color:${body.color}66; color:${body.color};">${body.name[0]}</div>
+        <div class="list-info">
+          <div class="list-name">${escapeHtml(body.name)}<span class="li-type">${escapeHtml(body.type)}</span></div>
+          <div class="list-owner unclaimed">unclaimed</div>
+        </div>
+        <div class="list-free-badge">claim free</div>
+      </div>`;
+    }
+    const level = claim.level || 1;
+    const color = levelColor(level);
+    const fav = faviconUrl(claim.link);
+    const dotHtml = fav ? `<img src="${fav}" onerror="this.parentElement.textContent='${escapeHtml(claim.owner[0]||'?')}'">` : escapeHtml(claim.owner[0]||'?');
+    const mine = iOwn(body.id);
+    return `<div class="list-row" style="${indent}" data-id="${body.id}">
+      <div class="list-dot" style="border-color:${color};">${dotHtml}</div>
+      <div class="list-info">
+        <div class="list-name">${escapeHtml(body.name)}<span class="li-type">${escapeHtml(body.type)}</span></div>
+        <div class="list-owner">${isImmune(claim)?'🛡':'⚑'} <b>${escapeHtml(claim.owner)}</b>${mine?' (you)':''}</div>
+      </div>
+      <div class="list-shield">
+        <div class="num">Lv ${level}/5</div>
+        <div class="list-shield-bar"><div class="list-shield-fill" style="width:${level*20}%; background:${color};"></div></div>
+      </div>
+    </div>`;
+  }).join('');
+  box.querySelectorAll('.list-row').forEach(row=>{
+    row.addEventListener('click', ()=> openModal(row.getAttribute('data-id')));
+  });
+}
+
+function showMapView(){
+  currentView = 'map';
+  mapwrapEl.style.display = 'block';
+  listwrapEl.style.display = 'none';
+  viewToggleBtn.textContent = '📋 List';
+}
+function showListView(){
+  currentView = 'list';
+  mapwrapEl.style.display = 'none';
+  listwrapEl.style.display = 'flex';
+  viewToggleBtn.textContent = '🗺 Map';
+  renderListView();
+}
+viewToggleBtn.addEventListener('click', ()=>{
+  if(currentView === 'map') showListView(); else showMapView();
+});
+
+// keep the list view fresh whenever the world changes
+const _updateCounts = updateCounts;
+updateCounts = function(){ _updateCounts(); if(listwrapEl.style.display !== 'none') renderListView(); };
+
+/* ---------- HARD SCROLL/BOUNCE LOCK ----------
+   Belt-and-braces on top of the CSS overscroll-behavior rules: block any
+   touchmove that isn't inside a deliberately scrollable area (sidebar
+   panels, list view, modal), so nothing can rubber-band the whole page
+   and reveal whatever sits behind it. */
+document.addEventListener('touchmove', function(e){
+  const scrollable = e.target.closest('.side-body, .wh-body, .list-wrap, .modal, input, textarea');
+  if(!scrollable){ e.preventDefault(); }
+}, {passive:false});
+
+loadAll();
+</script>
+</body>
+</html>
